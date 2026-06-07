@@ -1,0 +1,13 @@
+{
+  "name": "gor-bot",
+  "version": "1.0.0",
+  "description": "Discord Bot fuer den Age of Clones GMod Server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "gamedig": "^4.4.0"
+  }
+}
