@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
 const Gamedig = require('gamedig');
 
 // ==================== HIER DEINE DATEN EINTRAGEN ====================
-const BOT_TOKEN = 'MTUxMzI2ODg2NjUxMDM1NjYzMA.GfZNdB.pJ_ggeIZXRCEQXecmKtv7X_kJnVfhF4Gas3Zn0'; 
+const BOT_TOKEN = process.env.DISCORD_TOKEN; // Holt sich das Token sicher aus Pterodactyl
 const SERVER_IP = '87.106.91.35'; // Eure Linux-Server IP, oder die vom GMod Server falls anders
 const SERVER_PORT = 27015;        // Der Standard-Port für Garry's Mod
 // ====================================================================
