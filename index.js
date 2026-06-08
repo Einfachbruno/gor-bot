@@ -25,12 +25,26 @@ const client = new Client({
 
 // ============================================================
 //  SYSTEM-MODULE laden
-//  Pfad auf Kleinschreibung korrigiert für Linux (Pterodactyl)
+//  Pfad exakt an Pterodactyl angepasst (/Systeme/Login System/)
 // ============================================================
-require('./system/loginsystem/loginsystem')(client);
+try {
+    // Versuch 1: Falls die Datei am Ende ein großes S hat (loginSystem.js)
+    require('./Systeme/Login System/loginSystem')(client);
+    console.log("✅ Login-System erfolgreich geladen!");
+} catch (error1) {
+    try {
+        // Versuch 2: Falls die Datei am Ende komplett kleingeschrieben ist (loginsystem.js)
+        require('./Systeme/Login System/loginsystem')(client);
+        console.log("✅ Login-System erfolgreich geladen (kleingeschrieben)!");
+    } catch (error2) {
+        console.error("⚠️ Fehler beim Laden des Login-Systems!");
+        console.error("Details Versuch 1:", error1.message);
+        console.error("Details Versuch 2:", error2.message);
+    }
+}
 
 // ============================================================
-//  READY-EVENT (Umbenannt zu clientReady gegen die Warnung)
+//  READY-EVENT (clientReady verhindert die Deprecation-Warnung)
 // ============================================================
 client.once('clientReady', () => {
     console.log(`✅ Erfolgreich eingeloggt als ${client.user.tag}!`);
