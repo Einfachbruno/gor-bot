@@ -25,14 +25,14 @@ const client = new Client({
 
 // ============================================================
 //  SYSTEM-MODULE laden
-//  Jedes Modul registriert seine Events selbst auf dem Client.
+//  Pfad auf Kleinschreibung korrigiert für Linux (Pterodactyl)
 // ============================================================
-require('./System/LoginSystem/loginSystem')(client);
+require('./system/loginsystem/loginsystem')(client);
 
 // ============================================================
-//  READY-EVENT
+//  READY-EVENT (Umbenannt zu clientReady gegen die Warnung)
 // ============================================================
-client.once('ready', () => {
+client.once('clientReady', () => {
     console.log(`✅ Erfolgreich eingeloggt als ${client.user.tag}!`);
     console.log(`📡 Ueberwache den GMod-Server auf IP: ${SERVER_IP}:${SERVER_PORT}`);
 
@@ -58,7 +58,7 @@ function updatePlayerCount() {
         console.log(`🎮 Status aktualisiert: ${state.players.length}/${state.maxplayers} Spieler online.`);
     })
     .catch((error) => {
-        console.log('⚠️  Fehler beim Abrufen des GMod-Servers (Evtl. ist der Server noch offline): ' + error.message);
+        console.log('⚠️ Fehler beim Abrufen des GMod-Servers (Evtl. ist der Server noch offline): ' + error.message);
         client.user.setActivity('Warte auf Server... ❌', { type: ActivityType.Watching });
     });
 }
