@@ -1,5 +1,5 @@
 // ============================================================
-//  AOC Star Wars RP – Login-System
+//  GOR Star Wars RP – Login-System
 //  Datei:   System/LoginSystem/loginSystem.js
 //  Zweck:   Wird von der index.js als Modul geladen und
 //           registriert alle Login-relevanten Events selbst.
@@ -9,7 +9,7 @@ const { EmbedBuilder } = require("discord.js");
 const config           = require("../../config.json");
 
 // ============================================================
-//  ROLLEN-IDs (aus config.json gelesen)
+//  ROLLEN-IDs (dynamisch aus config.json gelesen)
 // ============================================================
 const ROLE_EINGELOGGT = Object.entries(config.statusRoles)
     .find(([, v]) => v.name === "Eingeloggt")?.[0];
@@ -43,7 +43,7 @@ function getGermanTime() {
 
 /**
  * Prüft, ob ein GuildMember mindestens eine Team-Rolle
- * aus config.roles besitzt (powerLevel > 0 ODER committee-Rolle).
+ * aus config.roles besitzt.
  * @param   {import("discord.js").GuildMember} member
  * @returns {boolean}
  */
@@ -52,8 +52,10 @@ function hasTeamRole(member) {
 }
 
 // ============================================================
-//  LOGIN-EMBED  (grün)
+//  EMBEDS
 // ============================================================
+
+/** Grünes Login-Embed für die PN */
 function buildLoginEmbed(member) {
     return new EmbedBuilder()
         .setColor(0x00ff00)
@@ -70,9 +72,24 @@ function buildLoginEmbed(member) {
         .setTimestamp();
 }
 
-// ============================================================
-//  AFK-LOGOUT-EMBED  (orange)
-// ============================================================
+/** Rotes Logout-Embed für die PN */
+function buildLogoutEmbed(member) {
+    return new EmbedBuilder()
+        .setColor(0xff0000)
+        .setTitle("📤 Dienst erfolgreich beendet")
+        .setDescription(
+            `Auf Wiedersehen, **${member.displayName}**!\n` +
+            `Du wurdest erfolgreich von **${config.serverName}** ausgeloggt.`
+        )
+        .addFields(
+            { name: "Status",  value: "🔴 Ausgeloggt / Außer Dienst", inline: true },
+            { name: "Uhrzeit", value: getGermanTime(),                 inline: true }
+        )
+        .setFooter({ text: config.serverName })
+        .setTimestamp();
+}
+
+/** Oranges AFK-Logout-Embed für die PN */
 function buildAfkEmbed(member) {
     return new EmbedBuilder()
         .setColor(0xff9900)
@@ -84,7 +101,7 @@ function buildAfkEmbed(member) {
         .addFields(
             {
                 name:   "Grund",
-                value:  "Inaktivität (Maus 10 Minuten unbewegt / Status manuell geändert)",
+                value:  "Inaktivität (Maus ~10 Minuten unbewegt / Status manuell geändert)",
                 inline: false,
             },
             { name: "Uhrzeit", value: getGermanTime(), inline: true }
@@ -94,64 +111,46 @@ function buildAfkEmbed(member) {
 }
 
 // ============================================================
-//  HANDLER: !login  (wird von messageCreate aufgerufen)
+//  HANDLER: !login
 // ============================================================
 async function handleLogin(message) {
     const member = message.member;
 
-    // ----------------------------------------------------------
-    //  SCHRITT A – Team-Rollen-Prüfung
-    // ----------------------------------------------------------
+    // SCHRITT A – Team-Rollen-Prüfung
     if (!hasTeamRole(member)) {
-        await message.reply(
-            "❌ Du gehörst nicht zum Team und kannst dich nicht einloggen!"
-        );
+        await message.reply("❌ Du gehörst nicht zum Team und kannst dich nicht einloggen!");
         return;
     }
 
-    // ----------------------------------------------------------
-    //  SCHRITT B – Bereits eingeloggt?
-    // ----------------------------------------------------------
+    // SCHRITT B – Bereits eingeloggt?
     if (member.roles.cache.has(ROLE_EINGELOGGT)) {
         await message.reply("ℹ️ Du bist bereits eingeloggt!");
         return;
     }
 
-    // ----------------------------------------------------------
-    //  SCHRITT C – Rollen tauschen
-    // ----------------------------------------------------------
+    // SCHRITT C – Rollen tauschen
     try {
         await member.roles.add(ROLE_EINGELOGGT);
         await member.roles.remove(ROLE_AUSGELOGGT);
         console.log(`[LoginSystem] ✅ ${member.user.tag} hat sich eingeloggt (${getGermanTime()})`);
     } catch (err) {
         console.error(`[LoginSystem] ❌ Rollen-Fehler bei ${member.user.tag}:`, err);
-        await message.reply(
-            "❌ Beim Zuweisen deiner Rollen ist ein Fehler aufgetreten. " +
-            "Bitte wende dich an einen Administrator."
-        );
+        await message.reply("❌ Beim Zuweisen deiner Rollen ist ein Fehler aufgetreten. Bitte wende dich an einen Administrator.");
         return;
     }
 
-    // ----------------------------------------------------------
-    //  SCHRITT D – !login-Nachricht nach 3 Sekunden löschen
-    // ----------------------------------------------------------
+    // SCHRITT D – Nachricht nach 3 Sekunden löschen
     setTimeout(async () => {
-        try { await message.delete(); } catch { /* bereits gelöscht / keine Berechtigung */ }
+        try { await message.delete(); } catch { /* ignorieren */ }
     }, 3_000);
 
-    // ----------------------------------------------------------
-    //  SCHRITT E – Login-Bestätigung per PN
-    //  SCHRITT F – Fallback-Nachricht, falls PN blockiert
-    // ----------------------------------------------------------
+    // SCHRITT E – Login-PN senden  |  SCHRITT F – Fallback
     try {
         await member.send({ embeds: [buildLoginEmbed(member)] });
     } catch {
-        // PN blockiert → temporäre öffentliche Meldung (5 s)
         try {
             const fallback = await message.channel.send(
-                `⚠️ ${member}, dein Login war erfolgreich, aber ich konnte dir keine PN senden ` +
-                `(Privatsphäre-Einstellungen?).`
+                `⚠️ ${member}, dein Login war erfolgreich, aber ich konnte dir keine PN senden (Privatsphäre-Einstellungen?).`
             );
             setTimeout(async () => {
                 try { await fallback.delete(); } catch { /* ignorieren */ }
@@ -163,13 +162,72 @@ async function handleLogin(message) {
 }
 
 // ============================================================
-//  HANDLER: presenceUpdate  (AFK-Logout)
+//  HANDLER: !logout
+// ============================================================
+async function handleLogout(message) {
+    const member = message.member;
+
+    // SCHRITT A – Team-Rollen-Prüfung
+    if (!hasTeamRole(member)) {
+        await message.reply("❌ Du gehörst nicht zum Team und kannst dich nicht ausloggen!");
+        return;
+    }
+
+    // SCHRITT B – Bereits ausgeloggt?
+    if (!member.roles.cache.has(ROLE_EINGELOGGT)) {
+        await message.reply("ℹ️ Du bist bereits ausgeloggt!");
+        return;
+    }
+
+    // SCHRITT C – Rollen tauschen
+    try {
+        await member.roles.remove(ROLE_EINGELOGGT);
+        await member.roles.add(ROLE_AUSGELOGGT);
+        console.log(`[LoginSystem] 🔴 ${member.user.tag} hat sich ausgeloggt (${getGermanTime()})`);
+    } catch (err) {
+        console.error(`[LoginSystem] ❌ Rollen-Fehler bei ${member.user.tag}:`, err);
+        await message.reply("❌ Beim Entfernen deiner Rollen ist ein Fehler aufgetreten. Bitte wende dich an einen Administrator.");
+        return;
+    }
+
+    // SCHRITT D – Nachricht nach 3 Sekunden löschen
+    setTimeout(async () => {
+        try { await message.delete(); } catch { /* ignorieren */ }
+    }, 3_000);
+
+    // SCHRITT E – Logout-PN senden  |  Fallback bei blockierten PNs
+    try {
+        await member.send({ embeds: [buildLogoutEmbed(member)] });
+    } catch {
+        try {
+            const fallback = await message.channel.send(
+                `⚠️ ${member}, dein Logout war erfolgreich, aber ich konnte dir keine PN senden (Privatsphäre-Einstellungen?).`
+            );
+            setTimeout(async () => {
+                try { await fallback.delete(); } catch { /* ignorieren */ }
+            }, 5_000);
+        } catch (err) {
+            console.error("[LoginSystem] ❌ Fallback-Nachricht fehlgeschlagen:", err);
+        }
+    }
+}
+
+// ============================================================
+//  HANDLER: presenceUpdate – Automatischer AFK-Logout
+//
+//  WIE ES FUNKTIONIERT:
+//  Discord setzt den Status eines Users nach ~10 Minuten
+//  ohne Mausbewegung automatisch auf "idle". Der Bot reagiert
+//  auf diesen Statuswechsel über das presenceUpdate-Event.
+//
+//  EINSCHRÄNKUNG:
+//  Dies ist eine Discord-seitige Funktion. Der Bot kann
+//  die Maus nicht selbst überwachen. Nutzer auf "Unsichtbar"
+//  werden sofort ausgeloggt (Status = "offline").
 // ============================================================
 async function handlePresenceUpdate(oldPresence, newPresence) {
 
-    // ----------------------------------------------------------
-    //  SCHRITT A – Grundlegende Filter
-    // ----------------------------------------------------------
+    // Grundlegende Filter: Bots & ungültige Presences ignorieren
     if (!newPresence)                return;
     if (!newPresence.member)         return;
     if (newPresence.member.user.bot) return;
@@ -177,16 +235,10 @@ async function handlePresenceUpdate(oldPresence, newPresence) {
     const member    = newPresence.member;
     const newStatus = newPresence.status; // "online" | "idle" | "dnd" | "offline"
 
-    // ----------------------------------------------------------
-    //  SCHRITT B – Nur eingeloggte Mitglieder verarbeiten
-    // ----------------------------------------------------------
+    // Nur eingeloggte Mitglieder verarbeiten
     if (!member.roles.cache.has(ROLE_EINGELOGGT)) return;
 
-    // ----------------------------------------------------------
-    //  SCHRITT C – Inaktivitäts-Erkennung
-    //  idle    = Discord setzt nach ~10 Min. Maus-Inaktivität
-    //  offline = Nutzer offline oder unsichtbar
-    // ----------------------------------------------------------
+    // Nur bei idle (~10 Min. inaktiv) oder offline/unsichtbar reagieren
     if (newStatus !== "idle" && newStatus !== "offline") return;
 
     console.log(
@@ -194,49 +246,42 @@ async function handlePresenceUpdate(oldPresence, newPresence) {
         `Status: ${newStatus} | Uhrzeit: ${getGermanTime()}`
     );
 
-    // ----------------------------------------------------------
-    //  SCHRITT D – Rollen zurücktauschen
-    // ----------------------------------------------------------
+    // Rollen zurücktauschen
     try {
         await member.roles.remove(ROLE_EINGELOGGT);
         await member.roles.add(ROLE_AUSGELOGGT);
-        console.log(`[LoginSystem] ✅ Rollen für ${member.user.tag} zurückgetauscht.`);
+        console.log(`[LoginSystem] ✅ AFK-Rollen für ${member.user.tag} zurückgetauscht.`);
     } catch (err) {
-        console.error(`[LoginSystem] ❌ Rollen-Fehler bei AFK-Logout (${member.user.tag}):`, err);
+        console.error(`[LoginSystem] ❌ AFK Rollen-Fehler (${member.user.tag}):`, err);
         return;
     }
 
-    // ----------------------------------------------------------
-    //  SCHRITT E – AFK-Logout-Embed per PN
-    // ----------------------------------------------------------
+    // AFK-Embed per PN – Fehler abfangen damit der Bot stabil bleibt
     await member.send({ embeds: [buildAfkEmbed(member)] }).catch((err) => {
-        console.warn(
-            `[LoginSystem] ⚠️  AFK-PN nicht zustellbar (${member.user.tag}): ${err.message}`
-        );
+        console.warn(`[LoginSystem] ⚠️  AFK-PN nicht zustellbar (${member.user.tag}): ${err.message}`);
     });
 }
 
 // ============================================================
 //  MODUL-EXPORT
-//  Registriert alle Events direkt auf dem übergebenen Client.
+//  Registriert alle Events auf dem übergebenen Client.
 //  Aufruf in index.js: require("./System/LoginSystem/loginSystem")(client)
 // ============================================================
 module.exports = function registerLoginSystem(client) {
     console.log("[LoginSystem] 🔧 Registriere Events …");
 
-    // --- Text-Command-Handler (!login) -----------------------
+    // Text-Commands: !login und !logout
     client.on("messageCreate", async (message) => {
-        if (message.author.bot)             return;
+        if (message.author.bot)              return;
         if (!message.content.startsWith("!")) return;
 
         const command = message.content.slice(1).trim().split(/\s+/)[0].toLowerCase();
 
-        if (command === "login") {
-            await handleLogin(message);
-        }
+        if (command === "login")  await handleLogin(message);
+        if (command === "logout") await handleLogout(message);
     });
 
-    // --- Presence-Handler (AFK-Logout) -----------------------
+    // Presence-Tracking für automatischen AFK-Logout
     client.on("presenceUpdate", async (oldPresence, newPresence) => {
         await handlePresenceUpdate(oldPresence, newPresence);
     });
