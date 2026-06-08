@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
+require('dotenv').config();
 const Gamedig = require('gamedig');
 
 // ==================== HIER DEINE DATEN EINTRAGEN ====================
@@ -35,4 +35,4 @@ function updatePlayerCount() {
     });
 }
 
-client.login(BOT_TOKEN);
+client.login(process.env.DISCORD_TOKEN);
