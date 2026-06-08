@@ -1,0 +1,98 @@
+{
+  "serverName": "Guardians of the Republic - AOC",
+
+  "roles": {
+    "1513192242821595136": {
+      "name": "Serverleitung",
+      "powerLevel": 100
+    },
+    "1513192424296550410": {
+      "name": "Super Administrator",
+      "powerLevel": 90
+    },
+    "1513193067778281694": {
+      "name": "Administrator",
+      "powerLevel": 85
+    },
+    "1513192241990991912": {
+      "name": "Developer",
+      "powerLevel": 75
+    },
+    "1513191913707143368": {
+      "name": "Senior Mod",
+      "powerLevel": 60
+    },
+    "1513192236903567601": {
+      "name": "Moderator",
+      "powerLevel": 50
+    },
+    "1513192240145633362": {
+      "name": "Junior Moderator",
+      "powerLevel": 40
+    },
+    "1513191989149962310": {
+      "name": "Guardians of the Republic Team",
+      "powerLevel": 20
+    },
+
+    "1513224129631752434": {
+      "name": "Event Ausschuss",
+      "powerLevel": 0,
+      "committee": "event"
+    },
+    "1513224124674215976": {
+      "name": "Bauausschuss",
+      "powerLevel": 0,
+      "committee": "bau"
+    },
+    "1513225405685825668": {
+      "name": "Advance Recone Commando Ausschuss",
+      "powerLevel": 0,
+      "committee": "arc"
+    },
+    "1513224132853108846": {
+      "name": "Serverausschuss",
+      "powerLevel": 0,
+      "committee": "server"
+    },
+    "1513224134765580428": {
+      "name": "Human Resource Ausschuss",
+      "powerLevel": 0,
+      "committee": "hr"
+    }
+  },
+
+  "statusRoles": {
+    "1513565098881454231": {
+      "name": "Eingeloggt",
+      "description": "Wird bei neuen Tickets gepingt ode anderen infos"
+    },
+    "1513565100722618419": {
+      "name": "Ausgeloggt",
+      "description": "Aktuell nicht im Dienst"
+    }
+  },
+
+  "commandPermissions": {
+    "setup": {
+      "minPower": 90,
+      "allowedCommittees": []
+    },
+    "team": {
+      "minPower": 80,
+      "allowedCommittees": [ "hr" ]
+    },
+    "event": {
+      "minPower": 50,
+      "allowedCommittees": [ "event" ]
+    },
+    "bau": {
+      "minPower": 60,
+      "allowedCommittees": [ "bau" ]
+    },
+    "serverManage": {
+      "minPower": 85,
+      "allowedCommittees": [ "server" ]
+    }
+  }
+}

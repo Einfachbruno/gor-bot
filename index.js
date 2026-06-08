@@ -1,38 +1,69 @@
-require('dotenv').config();
-const Gamedig = require('gamedig');
+require('dotenv').config({ path: __dirname + '/.env' });
+const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
+const { GameDig } = require('gamedig');
 
 // ==================== HIER DEINE DATEN EINTRAGEN ====================
-const BOT_TOKEN = process.env.DISCORD_TOKEN; // Holt sich das Token sicher aus Pterodactyl
-const SERVER_IP = '87.106.91.35'; // Eure Linux-Server IP, oder die vom GMod Server falls anders
-const SERVER_PORT = 27015;        // Der Standard-Port für Garry's Mod
+const BOT_TOKEN  = process.env.DISCORD_TOKEN;
+const SERVER_IP  = '194.69.160.28';
+const SERVER_PORT = 27015;
 // ====================================================================
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+// ============================================================
+//  CLIENT – Intents erweitert für das Login-System
+//  GuildMessages, MessageContent, GuildMembers und
+//  GuildPresences sind zwingend für !login & AFK-Tracking.
+// ============================================================
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildPresences,
+    ],
+});
 
+// ============================================================
+//  SYSTEM-MODULE laden
+//  Jedes Modul registriert seine Events selbst auf dem Client.
+// ============================================================
+require('./System/LoginSystem/loginSystem')(client);
+
+// ============================================================
+//  READY-EVENT
+// ============================================================
 client.once('ready', () => {
-    console.log(`Erfolgreich eingeloggt als ${client.user.tag}!`);
-    console.log(`Ueberwache den GMod-Server auf IP: ${SERVER_IP}:${SERVER_PORT}`);
-    
+    console.log(`✅ Erfolgreich eingeloggt als ${client.user.tag}!`);
+    console.log(`📡 Ueberwache den GMod-Server auf IP: ${SERVER_IP}:${SERVER_PORT}`);
+
     // Alle 30 Sekunden die Spielerzahl aktualisieren
     setInterval(updatePlayerCount, 30000);
     updatePlayerCount(); // Direkt beim Start einmal ausführen
 });
 
+// ============================================================
+//  GAMEDIG – Spielerzahl-Abfrage
+// ============================================================
 function updatePlayerCount() {
-    Gamedig.query({
+    GameDig.query({
         type: 'garrysmod',
         host: SERVER_IP,
-        port: parseInt(SERVER_PORT)
-    }).then((state) => {
-        // Ändert den Discord-Status zu: "Schaut zu: X/Y Spielern"
-        client.user.setActivity(`${state.players.length}/${state.maxplayers} Spielern auf AOC`, { 
-            type: ActivityType.Watching 
-        });
-        console.log(`Status aktualisiert: ${state.players.length}/${state.maxplayers} Spieler online.`);
-    }).catch((error) => {
-        console.log("Fehler beim Abrufen des GMod-Servers (Evtl. ist der Server noch offline): " + error.message);
+        port: parseInt(SERVER_PORT),
+    })
+    .then((state) => {
+        client.user.setActivity(
+            `${state.players.length}/${state.maxplayers} Spielern auf AOC`,
+            { type: ActivityType.Watching }
+        );
+        console.log(`🎮 Status aktualisiert: ${state.players.length}/${state.maxplayers} Spieler online.`);
+    })
+    .catch((error) => {
+        console.log('⚠️  Fehler beim Abrufen des GMod-Servers (Evtl. ist der Server noch offline): ' + error.message);
         client.user.setActivity('Warte auf Server... ❌', { type: ActivityType.Watching });
     });
 }
 
-client.login(process.env.DISCORD_TOKEN);
+// ============================================================
+//  BOT LOGIN
+// ============================================================
+client.login(BOT_TOKEN);
